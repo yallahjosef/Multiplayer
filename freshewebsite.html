@@ -3,134 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dodge the Obstacles</title>
+    <title>Multiplayer Pong</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-
-        canvas {
-            display: block;
-            background-color: #f0f0f0;
-            margin: 0;
             padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #111;
         }
-
+        canvas {
+            border: 2px solid white;
+        }
         h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        #score {
-            font-size: 24px;
-            color: #333;
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 20px;
+            color: white;
+            font-size: 24px;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
-    <h1>Escape the Obstacles!</h1>
-    <div id="score">Punkte: 0</div>
-    <canvas id="gameCanvas"></canvas>
-
+    <h1>Multiplayer Pong</h1>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score');
-        
-        // Setze die Canvas-Größe auf die Fenstergröße
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
 
-        const playerSize = 30;
-        let playerX = canvas.width / 2 - playerSize / 2;
-        let playerY = canvas.height - playerSize - 20;
-        let playerSpeed = 5;
+        const paddleWidth = 10, paddleHeight = 80;
+        const ballSize = 10;
 
-        let obstacles = [];
-        let score = 0;
-        let gameOver = false;
+        let leftPaddleY = (canvas.height - paddleHeight) / 2;
+        let rightPaddleY = (canvas.height - paddleHeight) / 2;
+        let ballX = canvas.width / 2, ballY = canvas.height / 2;
+        let ballSpeedX = 2, ballSpeedY = 2;
+        let leftPaddleSpeed = 0, rightPaddleSpeed = 0;
 
-        // Spieler steuern
-        let left = false, right = false, up = false, down = false;
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') left = true;
-            if (e.key === 'ArrowRight') right = true;
-            if (e.key === 'ArrowUp') up = true;
-            if (e.key === 'ArrowDown') down = true;
-        });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft') left = false;
-            if (e.key === 'ArrowRight') right = false;
-            if (e.key === 'ArrowUp') up = false;
-            if (e.key === 'ArrowDown') down = false;
-        });
-
-        // Hindernisse erzeugen
-        function createObstacle() {
-            const size = Math.random() * (50 - 20) + 20;
-            const x = Math.random() * (canvas.width - size);
-            obstacles.push({ x: x, y: -size, size: size, speed: Math.random() * (4 - 2) + 2 });
+        // Lese die Eingaben aus dem localStorage
+        function readInput() {
+            const leftInput = localStorage.getItem('leftPaddleSpeed') || 0;
+            const rightInput = localStorage.getItem('rightPaddleSpeed') || 0;
+            leftPaddleSpeed = parseInt(leftInput);
+            rightPaddleSpeed = parseInt(rightInput);
         }
 
-        // Spiel-Logik
+        // Zeichne den Ball
+        function drawBall() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(ballX, ballY, ballSize, ballSize);
+        }
+
+        // Zeichne die Paddles
+        function drawPaddles() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, leftPaddleY, paddleWidth, paddleHeight);
+            ctx.fillRect(canvas.width - paddleWidth, rightPaddleY, paddleWidth, paddleHeight);
+        }
+
+        // Zeichne den Punktestand
+        function drawScore() {
+            ctx.font = '20px Arial';
+            ctx.fillText('Player 1', 50, 30);
+            ctx.fillText('Player 2', canvas.width - 100, 30);
+        }
+
+        // Update Spielobjekte und Kollisionslogik
         function update() {
-            if (gameOver) return;
+            // Lese die Eingaben
+            readInput();
 
-            // Spieler steuern
-            if (left && playerX > 0) playerX -= playerSpeed;
-            if (right && playerX + playerSize < canvas.width) playerX += playerSpeed;
-            if (up && playerY > 0) playerY -= playerSpeed;
-            if (down && playerY + playerSize < canvas.height) playerY += playerSpeed;
+            // Bewege den Ball
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
 
-            // Hindernisse bewegen und prüfen, ob sie den Spieler treffen
-            obstacles.forEach((obstacle, index) => {
-                obstacle.y += obstacle.speed;
-                if (obstacle.y > canvas.height) {
-                    obstacles.splice(index, 1);
-                    score++;
-                    scoreDisplay.textContent = "Punkte: " + score;
-                }
+            // Ball Kollision mit Wänden
+            if (ballY <= 0 || ballY + ballSize >= canvas.height) {
+                ballSpeedY = -ballSpeedY;
+            }
 
-                if (
-                    playerX < obstacle.x + obstacle.size &&
-                    playerX + playerSize > obstacle.x &&
-                    playerY < obstacle.y + obstacle.size &&
-                    playerY + playerSize > obstacle.y
-                ) {
-                    gameOver = true;
-                    alert('Game Over! Deine Punktzahl: ' + score);
-                    document.location.reload();
-                }
-            });
+            // Ball Kollision mit Paddles
+            if (ballX <= paddleWidth && ballY >= leftPaddleY && ballY <= leftPaddleY + paddleHeight) {
+                ballSpeedX = -ballSpeedX;
+            }
 
-            // Hindernisse regelmäßig erstellen
-            if (Math.random() < 0.02) createObstacle();
+            if (ballX + ballSize >= canvas.width - paddleWidth && ballY >= rightPaddleY && ballY <= rightPaddleY + paddleHeight) {
+                ballSpeedX = -ballSpeedX;
+            }
 
-            // Canvas neu zeichnen
+            // Ball Kollision mit Schlägen (links und rechts)
+            if (ballX <= 0 || ballX + ballSize >= canvas.width) {
+                ballX = canvas.width / 2;
+                ballY = canvas.height / 2;
+            }
+
+            // Paddle Bewegung
+            leftPaddleY += leftPaddleSpeed;
+            rightPaddleY += rightPaddleSpeed;
+
+            // Verhindern, dass die Paddles den Bildschirm verlassen
+            leftPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, leftPaddleY));
+            rightPaddleY = Math.max(0, Math.min(canvas.height - paddleHeight, rightPaddleY));
+
+            // Zeichne alles neu
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawPaddles();
+            drawScore();
 
-            // Spieler zeichnen (visuell besser erkennbar)
-            ctx.fillStyle = '#4CAF50';
-            ctx.fillRect(playerX, playerY, playerSize, playerSize);
-
-            // Hindernisse zeichnen
-            obstacles.forEach(obstacle => {
-                ctx.fillStyle = '#FF5733';
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
-            });
-
-            // Nächstes Frame
             requestAnimationFrame(update);
         }
 
-        update();  // Start des Spiels
+        // Steuerung des linken Paddles
+        window.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowUp') {
+                localStorage.setItem('leftPaddleSpeed', -4);
+            } else if (event.key === 'ArrowDown') {
+                localStorage.setItem('leftPaddleSpeed', 4);
+            }
+        });
+
+        window.addEventListener('keyup', function (event) {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                localStorage.setItem('leftPaddleSpeed', 0);
+            }
+        });
+
+        // Steuerung des rechten Paddles
+        window.addEventListener('keydown', function (event) {
+            if (event.key === 'w') {
+                localStorage.setItem('rightPaddleSpeed', -4);
+            } else if (event.key === 's') {
+                localStorage.setItem('rightPaddleSpeed', 4);
+            }
+        });
+
+        window.addEventListener('keyup', function (event) {
+            if (event.key === 'w' || event.key === 's') {
+                localStorage.setItem('rightPaddleSpeed', 0);
+            }
+        });
+
+        // Starte das Spiel
+        update();
     </script>
 </body>
 </html>
