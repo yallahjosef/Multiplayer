@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodge the Obstacles</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        #score {
+            font-size: 24px;
+            color: #333;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Escape the Obstacles!</h1>
+    <div id="score">Punkte: 0</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        
+        // Setze die Canvas-Größe auf die Fenstergröße
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const playerSize = 30;
+        let playerX = canvas.width / 2 - playerSize / 2;
+        let playerY = canvas.height - playerSize - 20;
+        let playerSpeed = 5;
+
+        let obstacles = [];
+        let score = 0;
+        let gameOver = false;
+
+        // Spieler steuern
+        let left = false, right = false, up = false, down = false;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') left = true;
+            if (e.key === 'ArrowRight') right = true;
+            if (e.key === 'ArrowUp') up = true;
+            if (e.key === 'ArrowDown') down = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') left = false;
+            if (e.key === 'ArrowRight') right = false;
+            if (e.key === 'ArrowUp') up = false;
+            if (e.key === 'ArrowDown') down = false;
+        });
+
+        // Hindernisse erzeugen
+        function createObstacle() {
+            const size = Math.random() * (50 - 20) + 20;
+            const x = Math.random() * (canvas.width - size);
+            obstacles.push({ x: x, y: -size, size: size, speed: Math.random() * (4 - 2) + 2 });
+        }
+
+        // Spiel-Logik
+        function update() {
+            if (gameOver) return;
+
+            // Spieler steuern
+            if (left && playerX > 0) playerX -= playerSpeed;
+            if (right && playerX + playerSize < canvas.width) playerX += playerSpeed;
+            if (up && playerY > 0) playerY -= playerSpeed;
+            if (down && playerY + playerSize < canvas.height) playerY += playerSpeed;
+
+            // Hindernisse bewegen und prüfen, ob sie den Spieler treffen
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacle.speed;
+                if (obstacle.y > canvas.height) {
+                    obstacles.splice(index, 1);
+                    score++;
+                    scoreDisplay.textContent = "Punkte: " + score;
+                }
+
+                if (
+                    playerX < obstacle.x + obstacle.size &&
+                    playerX + playerSize > obstacle.x &&
+                    playerY < obstacle.y + obstacle.size &&
+                    playerY + playerSize > obstacle.y
+                ) {
+                    gameOver = true;
+                    alert('Game Over! Deine Punktzahl: ' + score);
+                    document.location.reload();
+                }
+            });
+
+            // Hindernisse regelmäßig erstellen
+            if (Math.random() < 0.02) createObstacle();
+
+            // Canvas neu zeichnen
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Spieler zeichnen (visuell besser erkennbar)
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(playerX, playerY, playerSize, playerSize);
+
+            // Hindernisse zeichnen
+            obstacles.forEach(obstacle => {
+                ctx.fillStyle = '#FF5733';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
+            });
+
+            // Nächstes Frame
+            requestAnimationFrame(update);
+        }
+
+        update();  // Start des Spiels
+    </script>
+</body>
+</html>
